@@ -14,12 +14,11 @@ class TargetPowerDisplayView extends Ui.DataField {
         DataField.initialize();
         mValue = 0.0f;
         
-        mMinPwr = 190;
-        mMaxPwr = 245;
+        mMinPwr = 315;
+        mMaxPwr = 325;
         
         mPwrValues = new [10];
         mIdx = 0;
-        
     }
 
     // Set your layout here. Anytime the size of obscurity of
@@ -82,20 +81,25 @@ class TargetPowerDisplayView extends Ui.DataField {
     function onUpdate(dc) {
     	var bgColor;
     	bgColor = Gfx.COLOR_WHITE;
-		var meanPwr = mMinPwr + (mMaxPwr - mMinPwr) / 2.0f;
+		var targetPwr = 0.5f * (mMaxPwr + mMinPwr);
 		if (mValue < mMinPwr) {
-			bgColor = 0xffffff;
+			bgColor = 0xffffff; // white
 		} else if (mValue > mMaxPwr) {
-			bgColor = 0xff0000;
+			bgColor = 0xff0000; // red
 		} else {
-			var pwrDeviation = 0xff * ((mValue - meanPwr) / ((mMaxPwr - mMinPwr) / 2.0f)); // ranges from -255..255
-			pwrDeviation = pwrDeviation.toLong();
-			if (pwrDeviation < 0) {
-				bgColor = ((0x00 - pwrDeviation) << 16) | ((0xff) << 8) | (0x00 - pwrDeviation);
-			} else if (pwrDeviation < 40) {
-				bgColor = 0x00ff00;
-			} else {
-				bgColor = ((0xff               ) << 16) | ((0xff - pwrDeviation) << 8) | (0xff - pwrDeviation);
+			// +/- 1 % we still want solid green
+			if(mValue >= 0.99*targetPwr && mValue <= 1.01*targetPwr) {
+				bgColor = 0x00ff00; // green
+			}  else {
+				var pwrDeviation = 0xff * ((mValue - targetPwr) / ((mMaxPwr - mMinPwr) / 2.0f)); // ranges from -255..255
+				pwrDeviation = pwrDeviation.toLong();
+				if (pwrDeviation < 0) {
+					// below target, let the green fade to white
+					bgColor = ((0x00 - pwrDeviation) << 16) | ((0xff) << 8) | (0x00 - pwrDeviation);
+				} else {
+					// above target, slowly move from white to solid red
+					bgColor = ((0xff               ) << 16) | ((0xff - pwrDeviation) << 8) | (0xff - pwrDeviation);
+				}
 			}
 		}
 
@@ -105,7 +109,7 @@ class TargetPowerDisplayView extends Ui.DataField {
         // Set the foreground color and value
         var value = View.findDrawableById("value");
         value.setColor(Gfx.COLOR_BLACK);
-        value.setText(mValue.format("%.2f"));
+        value.setText(mValue.format("%.0f"));
 
         // Call parent's onUpdate(dc) to redraw the layout
         View.onUpdate(dc);
